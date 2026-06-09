@@ -54,47 +54,18 @@ export function EducationalMath() {
     reserveOut: string
   } | null>(null)
 
-  const [, setActiveLiquidity] = useState<{
-    activeTab: 'add' | 'remove'
-    wethInput: string
-    usdcInput: string
-    lpInput: string
-    wethReturned: string
-    usdcReturned: string
-    lpEstimated: string
-  } | null>(null)
-
   useEffect(() => {
     const handleSwapChange = (e: Event) => {
       const customEvent = e as CustomEvent
       setActiveSwap(customEvent.detail)
     }
 
-    const handleLiqChange = (e: Event) => {
-      const customEvent = e as CustomEvent
-      setActiveLiquidity(customEvent.detail)
-    }
-
     window.addEventListener('activeSwapChanged', handleSwapChange)
-    window.addEventListener('activeLiquidityChanged', handleLiqChange)
 
     return () => {
       window.removeEventListener('activeSwapChanged', handleSwapChange)
-      window.removeEventListener('activeLiquidityChanged', handleLiqChange)
     }
   }, [])
-
-  // --- Impermanent Loss Calculator State ---
-  const [priceRatio, setPriceRatio] = useState<number>(1.0) // 1.0 = 100% (no price change)
-
-  // IL = (2 * sqrt(r)) / (1 + r) - 1
-  const ilVal = (2 * Math.sqrt(priceRatio)) / (1 + priceRatio) - 1
-  const ilPercent = (ilVal * 100).toFixed(2)
-
-  // Hold Value vs LP Value assuming initial pool weight is 50/50 WETH/USDC
-  const holdValue = (1 + priceRatio) / 2
-  const lpValue = Math.sqrt(priceRatio)
-
 
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm space-y-6">
@@ -133,11 +104,11 @@ export function EducationalMath() {
             </p>
             <div className="flex flex-wrap items-center justify-between text-xs font-mono font-medium text-indigo-950 gap-2">
               <span className="text-gray-600">
-                {wethResNum.toFixed(2)} x<sub>WETH</sub>
+                {wethResNum.toFixed(8)} x<sub>WETH</sub>
               </span>
               <span className="text-gray-400">×</span>
               <span className="text-gray-600">
-                {usdcResNum.toFixed(2)} y<sub>USDC</sub>
+                {usdcResNum.toFixed(6)} y<sub>USDC</sub>
               </span>
               <span className="text-gray-400">=</span>
               <span className="text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded">
@@ -167,11 +138,11 @@ export function EducationalMath() {
               </p>
               <p className="text-[11px]">
                 Fee = {activeSwap.inputAmount} × 0.003 ={' '}
-                {(parseFloat(activeSwap.inputAmount) * 0.003).toFixed(6)} {activeSwap.inputToken}
+                {(parseFloat(activeSwap.inputAmount) * 0.003).toFixed(8)} {activeSwap.inputToken}
               </p>
               <p className="text-[11px] font-semibold text-green-700">
                 dx<sub>eff</sub> = {activeSwap.inputAmount} × 0.997 ={' '}
-                {(parseFloat(activeSwap.inputAmount) * 0.997).toFixed(6)} {activeSwap.inputToken}
+                {(parseFloat(activeSwap.inputAmount) * 0.997).toFixed(8)} {activeSwap.inputToken}
               </p>
             </div>
 
@@ -183,19 +154,19 @@ export function EducationalMath() {
               </p>
               <div className="bg-white p-2 rounded border border-gray-100 text-[11px] leading-relaxed">
                 <div>
-                  x (Reserve In) = {parseFloat(activeSwap.reserveIn).toFixed(4)}
+                  x (Reserve In) = {parseFloat(activeSwap.reserveIn).toFixed(8)}
                 </div>
                 <div>
-                  y (Reserve Out) = {parseFloat(activeSwap.reserveOut).toFixed(2)}
+                  y (Reserve Out) = {parseFloat(activeSwap.reserveOut).toFixed(6)}
                 </div>
                 <div className="mt-1.5 pt-1.5 border-t border-dashed border-gray-200 text-indigo-700 font-bold">
-                  dy = ({(parseFloat(activeSwap.inputAmount) * 0.997).toFixed(4)} ×{' '}
-                  {parseFloat(activeSwap.reserveOut).toFixed(2)}) / (
-                  {parseFloat(activeSwap.reserveIn).toFixed(4)} +{' '}
-                  {(parseFloat(activeSwap.inputAmount) * 0.997).toFixed(4)})
+                  dy = ({(parseFloat(activeSwap.inputAmount) * 0.997).toFixed(8)} ×{' '}
+                  {parseFloat(activeSwap.reserveOut).toFixed(6)}) / (
+                  {parseFloat(activeSwap.reserveIn).toFixed(8)} +{' '}
+                  {(parseFloat(activeSwap.inputAmount) * 0.997).toFixed(8)})
                 </div>
                 <div className="mt-0.5 text-indigo-800 font-bold">
-                  dy = {parseFloat(activeSwap.amountOut).toFixed(4)} {activeSwap.inputToken === 'WETH' ? 'USDC' : 'WETH'}
+                  dy = {parseFloat(activeSwap.amountOut).toFixed(8)} {activeSwap.inputToken === 'WETH' ? 'USDC' : 'WETH'}
                 </div>
               </div>
             </div>
@@ -210,83 +181,6 @@ export function EducationalMath() {
           </div>
         </div>
       )}
-
-      {/* --- SECTION 3: Impermanent Loss Simulator --- */}
-      <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-4 space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-amber-900 uppercase tracking-wider">
-            Impermanent Loss Simulator
-          </h3>
-          <span className="text-xs px-2 py-0.5 bg-amber-100 rounded-full font-mono text-amber-800">
-            LP vs HODL
-          </span>
-        </div>
-        <div className="text-xs text-amber-950">
-          <p className="leading-relaxed">
-            Impermanent Loss happens when the price ratio of WETH/USDC changes after you pool them, compared to simply holding WETH and USDC in your wallet.
-          </p>
-        </div>
-
-        {/* Price Slider */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs font-semibold text-amber-900 font-mono">
-            <span>Price Change ratio:</span>
-            <span className="font-bold">
-              {(priceRatio * 100).toFixed(0)}% ({priceRatio < 1.0 ? '' : '+'}{(priceRatio * 100 - 100).toFixed(0)}%)
-            </span>
-          </div>
-          <input
-            type="range"
-            min="0.1"
-            max="5.0"
-            step="0.05"
-            value={priceRatio}
-            onChange={(e) => setPriceRatio(parseFloat(e.target.value))}
-            className="w-full h-1.5 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
-          />
-          <div className="flex justify-between text-[9px] text-amber-600 uppercase font-bold font-mono">
-            <span>-90% Drop</span>
-            <span>Current Price</span>
-            <span>5x Jump</span>
-          </div>
-        </div>
-
-        {/* Results display */}
-        <div className="rounded border border-amber-100 bg-white p-3 space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500 font-medium font-sans">Holding 50/50 portfolio value:</span>
-            <span className="font-mono text-gray-900 font-bold">${holdValue.toFixed(4)}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500 font-medium font-sans">AMM Liquidity Position value:</span>
-            <span className="font-mono text-indigo-700 font-bold">${lpValue.toFixed(4)}</span>
-          </div>
-          <div className="flex items-center justify-between border-t border-amber-100 pt-2 text-xs">
-            <span className="font-semibold text-amber-900">Impermanent Loss:</span>
-            <span className={`font-mono font-bold ${priceRatio === 1 ? 'text-green-600' : 'text-red-600'}`}>
-              {priceRatio === 1 ? '0.00%' : `${ilPercent}%`}
-            </span>
-          </div>
-
-          <p className="text-[10px] text-gray-500 leading-normal pt-1 font-sans">
-            {priceRatio === 1 ? (
-              '✅ Price is unchanged. No impermanent loss!'
-            ) : (
-              <span>
-                ⚠️ If WETH price moves to{' '}
-                <strong className="text-amber-800">
-                  {priceRatio.toFixed(2)}x
-                </strong>{' '}
-                and you withdraw, you receive{' '}
-                <strong className="text-red-700">
-                  {Math.abs(parseFloat(ilPercent))}% less value
-                </strong>{' '}
-                than if you had just kept the tokens in your wallet.
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
     </section>
   )
 }

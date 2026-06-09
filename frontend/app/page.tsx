@@ -75,7 +75,7 @@ export default function Home() {
 
             {/* Informational note */}
             <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs sm:text-sm text-blue-700">
-              <strong>Local Development Mode:</strong> Connecting to Anvil chain (ID 31337). 
+              <strong>Local Development Mode:</strong> Connecting to Anvil chain (ID 31338). 
               Please ensure your wallet is connected to your local RPC <code className="bg-blue-100 px-1 py-0.5 rounded font-mono">http://127.0.0.1:8545</code>.
             </div>
           </div>

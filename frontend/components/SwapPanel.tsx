@@ -16,6 +16,14 @@ import { TxStatus } from '@/components/TxStatus'
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
+type TxPhase =
+  | 'idle'
+  | 'approve-pending'    // waiting for user to sign transfer
+  | 'approve-confirming' // transfer tx sent, waiting for block confirmation
+  | 'swap-pending'       // waiting for user to sign swap
+  | 'swap-confirming'    // swap tx sent, waiting for block confirmation
+  | 'success'            // all confirmed
+
 interface SwapPanelProps {
   onSwapSuccess?: () => void
 }
@@ -28,9 +36,11 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
   // State
   const [inputAmount, setInputAmount] = useState('')
   const [inputToken, setInputToken] = useState<'WETH' | 'USDC'>('WETH')
-  const [isSwapping, setIsSwapping] = useState(false)
+  const [txPhase, setTxPhase] = useState<TxPhase>('idle')
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const isSwapping = txPhase !== 'idle' && txPhase !== 'success'
 
   // Contract Reads
   const poolEnabled = POOL_ADDRESS !== ZERO_ADDRESS
@@ -126,8 +136,12 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
     priceImpact = ((spotPrice - executionPrice) / spotPrice) * 100
   }
 
+  // Fee calculation (0.3% of input)
+  const feeAmount = amountInBigInt > 0n ? (amountInBigInt * 3n) / 1000n : 0n
+
   const formattedOutput = amountOutBigInt > 0n ? formatUnits(amountOutBigInt, outputDecimals) : '0'
-  const parsedFormattedOutput = parseFloat(formattedOutput).toFixed(4)
+  const outputDisplayDecimals = outputToken === 'WETH' ? 8 : 6
+  const parsedFormattedOutput = parseFloat(formattedOutput).toFixed(outputDisplayDecimals)
 
   const handleSwap = async () => {
     if (!publicClient) {
@@ -148,13 +162,13 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
     }
 
     try {
-      setIsSwapping(true)
       setErrorMsg(null)
       setTxHash(undefined)
 
       const inputTokenAddress = inputToken === 'WETH' ? WETH_ADDRESS : USDC_ADDRESS
 
       // Step 1: Transfer input tokens to the pool contract
+      setTxPhase('approve-pending')
       console.log(`Step 1: Transferring ${inputAmount} ${inputToken} to the Pool...`)
       const transferHash = await writeContractAsync({
         address: inputTokenAddress,
@@ -163,7 +177,10 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
         args: [POOL_ADDRESS, amountInBigInt],
       })
 
+      setTxHash(transferHash)
+
       // Wait for the transfer transaction to be mined
+      setTxPhase('approve-confirming')
       await publicClient.waitForTransactionReceipt({ hash: transferHash })
       console.log('Transfer confirmed!')
 
@@ -177,6 +194,8 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
         ? (inputToken === 'WETH' ? minimumOutputBigInt : 0n) // If inputting WETH (token0), we get token1 (USDC)
         : (inputToken === 'WETH' ? 0n : minimumOutputBigInt)
 
+      setTxPhase('swap-pending')
+      setTxHash(undefined) // Reset status component for the swap step
       console.log(`Step 2: Executing Swap on Pool: swap(${amount0Out}, ${amount1Out}, ${address})...`)
       const swapHash = await writeContractAsync({
         address: POOL_ADDRESS,
@@ -186,18 +205,23 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
       })
 
       setTxHash(swapHash)
+      setTxPhase('swap-confirming')
       await publicClient.waitForTransactionReceipt({ hash: swapHash })
       
+      setTxPhase('success')
+
       // Clean up input & refetch state
       setInputAmount('')
       refetchPool()
       if (onSwapSuccess) onSwapSuccess()
+
+      // Auto-clear success after 5 seconds
+      setTimeout(() => setTxPhase('idle'), 5000)
     } catch (err: unknown) {
       const error = err as { shortMessage?: string; message?: string }
       console.error(err)
       setErrorMsg(error.shortMessage || error.message || 'Transaction failed.')
-    } finally {
-      setIsSwapping(false)
+      setTxPhase('idle')
     }
   }
 
@@ -222,6 +246,18 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
     window.dispatchEvent(event)
   }, [inputAmount, inputToken, formattedOutput, priceImpact, reserveIn, reserveOut, inputDecimals, outputDecimals])
 
+  // Transaction phase label for button
+  const getButtonLabel = () => {
+    switch (txPhase) {
+      case 'approve-pending': return '⏳ Sign Transfer in Wallet...'
+      case 'approve-confirming': return '⛓ Confirming Transfer...'
+      case 'swap-pending': return '⏳ Sign Swap in Wallet...'
+      case 'swap-confirming': return '⛓ Confirming Swap...'
+      case 'success': return '✅ Swap Complete!'
+      default: return 'Swap'
+    }
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       <h2 className="mb-4 text-lg font-semibold text-gray-900">Swap Tokens</h2>
@@ -237,7 +273,7 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
               <span>
                 Balance:{' '}
                 {userBalance !== undefined
-                  ? parseFloat(formatUnits(userBalance, inputDecimals)).toFixed(4)
+                  ? parseFloat(formatUnits(userBalance, inputDecimals)).toFixed(inputToken === 'WETH' ? 8 : 6)
                   : '—'}{' '}
                 {inputToken}
               </span>
@@ -251,6 +287,7 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
                 onChange={(e) => {
                   setInputAmount(e.target.value)
                   setErrorMsg(null)
+                  if (txPhase === 'success') setTxPhase('idle')
                 }}
                 className="block w-full rounded-l-md border-gray-300 pr-12 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 border"
               />
@@ -288,7 +325,7 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
                 type="text"
                 readOnly
                 placeholder="0.0"
-                value={parsedFormattedOutput === '0.0000' ? '' : parsedFormattedOutput}
+                value={parsedFormattedOutput === `0.${'0'.repeat(outputDisplayDecimals)}` ? '' : parsedFormattedOutput}
                 className="block w-full rounded-md border-gray-300 bg-gray-50 p-2.5 border sm:text-sm text-gray-500"
               />
               <span className="absolute right-3 top-3 text-sm text-gray-500 font-medium">
@@ -308,27 +345,57 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
                     Number(amountOutBigInt) /
                     10**outputDecimals /
                     (Number(amountInBigInt) / 10**inputDecimals)
-                  ).toFixed(inputToken === 'WETH' ? 2 : 6)}{' '}
+                  ).toFixed(inputToken === 'WETH' ? 6 : 8)}{' '}
                   {outputToken}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Price Impact:</span>
                 <span className={priceImpact > 5 ? 'text-red-500 font-medium' : 'text-gray-900'}>
-                  {priceImpact.toFixed(2)}%
+                  {priceImpact.toFixed(4)}%
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Slippage Tolerance:</span>
                 <span>0.5%</span>
               </div>
+              {/* Liquidity Provider Fee */}
+              <div className="flex justify-between">
+                <span className="text-gray-500">LP Fee (0.3%):</span>
+                <span className="text-amber-700 font-medium">
+                  {parseFloat(formatUnits(feeAmount, inputDecimals)).toFixed(inputToken === 'WETH' ? 8 : 6)}{' '}
+                  {inputToken}
+                </span>
+              </div>
               <div className="flex justify-between border-t border-gray-200 pt-2 font-medium">
                 <span className="text-gray-600">Minimum Received:</span>
                 <span>
-                  {parseFloat(formatUnits(minimumOutputBigInt, outputDecimals)).toFixed(4)}{' '}
+                  {parseFloat(formatUnits(minimumOutputBigInt, outputDecimals)).toFixed(outputToken === 'WETH' ? 8 : 6)}{' '}
                   {outputToken}
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Transaction Phase Indicator */}
+          {isSwapping && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex items-center gap-2">
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+              <span>
+                {txPhase === 'approve-pending' && 'Waiting for you to sign the transfer in your wallet...'}
+                {txPhase === 'approve-confirming' && 'Transfer submitted. Waiting for on-chain confirmation...'}
+                {txPhase === 'swap-pending' && 'Waiting for you to sign the swap in your wallet...'}
+                {txPhase === 'swap-confirming' && 'Swap submitted. Waiting for on-chain confirmation...'}
+              </span>
+            </div>
+          )}
+
+          {txPhase === 'success' && (
+            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 flex items-center gap-2">
+              <svg className="h-4 w-4 flex-shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Swap confirmed successfully!</span>
             </div>
           )}
 
@@ -337,9 +404,13 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
             type="button"
             onClick={handleSwap}
             disabled={isSwapping || amountInBigInt === 0n}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+            className={`w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed ${
+              txPhase === 'success'
+                ? 'bg-green-600 hover:bg-green-500'
+                : 'bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-300'
+            }`}
           >
-            {isSwapping ? 'Executing Swaps (2 steps)...' : 'Swap'}
+            {getButtonLabel()}
           </button>
 
           {/* Status & Errors */}

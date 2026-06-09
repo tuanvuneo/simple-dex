@@ -10,3 +10,10 @@ export const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? '0x00
 // Token metadata (known from contract source)
 export const WETH_DECIMALS = 18
 export const USDC_DECIMALS = 6
+
+export const EXPLORER_URL = process.env.NEXT_PUBLIC_EXPLORER_URL ?? 'http://localhost:5100'
+
+export function getExplorerTxLink(txHash: string): string {
+  return `${EXPLORER_URL}/tx/${txHash}`
+}
+

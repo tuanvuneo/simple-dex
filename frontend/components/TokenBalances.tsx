@@ -48,11 +48,11 @@ export function TokenBalances() {
   const lpBalance = data?.[2]?.result
 
   const formatWeth = (val: bigint) =>
-    parseFloat(formatUnits(val, WETH_DECIMALS)).toFixed(4)
+    parseFloat(formatUnits(val, WETH_DECIMALS)).toFixed(8)
   const formatUsdc = (val: bigint) =>
-    parseFloat(formatUnits(val, USDC_DECIMALS)).toFixed(2)
+    parseFloat(formatUnits(val, USDC_DECIMALS)).toFixed(6)
   const formatLp = (val: bigint) =>
-    parseFloat(formatUnits(val, 18)).toFixed(4)
+    formatUnits(val, 18)
 
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">

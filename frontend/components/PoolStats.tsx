@@ -75,8 +75,8 @@ export function PoolStats() {
   ) {
     const wethAmount = parseFloat(formatUnits(reserveWeth, WETH_DECIMALS))
     const usdcAmount = parseFloat(formatUnits(reserveUsdc, USDC_DECIMALS))
-    wethToUsdc = (usdcAmount / wethAmount).toFixed(2)
-    usdcToWeth = (wethAmount / usdcAmount).toFixed(6)
+    wethToUsdc = (usdcAmount / wethAmount).toFixed(6)
+    usdcToWeth = (wethAmount / usdcAmount).toFixed(8)
   }
 
   const hasNoLiquidity =
@@ -122,7 +122,7 @@ export function PoolStats() {
             <dt className="text-sm font-medium text-gray-600">WETH Reserve</dt>
             <dd className="text-sm text-gray-900">
               {reserveWeth !== undefined
-                ? parseFloat(formatUnits(reserveWeth, WETH_DECIMALS)).toFixed(4)
+                ? parseFloat(formatUnits(reserveWeth, WETH_DECIMALS)).toFixed(8)
                 : '—'}
             </dd>
           </div>
@@ -130,7 +130,7 @@ export function PoolStats() {
             <dt className="text-sm font-medium text-gray-600">USDC Reserve</dt>
             <dd className="text-sm text-gray-900">
               {reserveUsdc !== undefined
-                ? parseFloat(formatUnits(reserveUsdc, USDC_DECIMALS)).toFixed(2)
+                ? parseFloat(formatUnits(reserveUsdc, USDC_DECIMALS)).toFixed(6)
                 : '—'}
             </dd>
           </div>
@@ -159,7 +159,7 @@ export function PoolStats() {
             <dt className="text-sm font-medium text-gray-600">Total LP Supply</dt>
             <dd className="text-sm text-gray-900">
               {totalSupplyResult !== undefined
-                ? parseFloat(formatUnits(totalSupplyResult, 18)).toFixed(4)
+                ? formatUnits(totalSupplyResult, 18)
                 : '—'}
             </dd>
           </div>

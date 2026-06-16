@@ -96,7 +96,7 @@ export function TokenBalances() {
               </dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="text-sm font-medium text-gray-600">MockUSDC</dt>
+              <dt className="text-sm font-medium text-gray-600">USDC</dt>
               <dd className="text-sm text-gray-900">
                 {usdcBalance !== undefined ? formatUsdc(usdcBalance as bigint) : '—'}
               </dd>

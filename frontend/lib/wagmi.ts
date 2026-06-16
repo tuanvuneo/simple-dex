@@ -1,5 +1,6 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { defineChain } from 'viem'
+import { sepolia } from 'viem/chains'
 
 export const localAnvil = defineChain({
   id: 31338,
@@ -17,7 +18,6 @@ export const localAnvil = defineChain({
 export const config = getDefaultConfig({
   appName: 'SimpleDEX',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? 'dev-project-id',
-  chains: [localAnvil],
+  chains: [sepolia, localAnvil],
   ssr: true,
 })
-

@@ -1,10 +1,12 @@
 # SimpleDEX
 
-A constant product AMM (automated market maker) implementing the x*y=k invariant with a 0.3% swap fee, built for learning DeFi mechanics. Includes Solidity smart contracts tested with Foundry and a Next.js frontend with wallet integration.
+A constant product AMM (automated market maker) implementing the x\*y=k invariant with a 0.3% swap fee, built for learning DeFi mechanics. Includes Solidity smart contracts tested with Foundry and a Next.js frontend with wallet integration.
+
+![SimpleDEX Web App Preview](assets/preview.png)
 
 ## Key Features
 
-- **Constant product AMM** with x*y=k invariant and 0.3% swap fee
+- **Constant product AMM** with x\*y=k invariant and 0.3% swap fee
 - **LP token system** where the Pool contract IS the LP token (Uniswap V2 pattern)
 - **Deterministic pool deployment** via CREATE2 in the Factory contract
 - **Comprehensive test suite** with unit, fuzz (10,000 runs), invariant, and reentrancy tests
@@ -16,7 +18,6 @@ A constant product AMM (automated market maker) implementing the x*y=k invariant
 - **Contract Tooling**: Foundry (Forge, Anvil, Cast), Slither
 - **Frontend**: Next.js 16, React 19, TypeScript 5, Tailwind CSS v4
 - **Web3 Integration**: wagmi v2, viem v2, RainbowKit v2, TanStack Query v5
-- **CI**: GitHub Actions (format check, build, test)
 
 ## Prerequisites
 
@@ -104,6 +105,7 @@ src/
 **Pool** is the core contract. It inherits ERC20, so the pool contract itself is the LP token. Users interact via the transfer-then-call pattern: transfer tokens to the pool address, then call `mint()`, `swap()`, or `burn()`. The pool detects deposited amounts by comparing its token balances against stored reserves.
 
 Key mechanics:
+
 - **Swap fee**: 0.3%, enforced via the invariant check rather than explicit deduction. Fees accumulate in reserves, increasing LP token value.
 - **First deposit**: LP tokens = `sqrt(amount0 * amount1) - 1000`. The 1000 minimum liquidity is permanently locked to prevent inflation attacks.
 - **Subsequent deposits**: LP tokens proportional to the lesser ratio of deposited amounts vs reserves.
@@ -154,37 +156,37 @@ test/
 
 ### Smart Contracts
 
-| Command | Description |
-|---------|-------------|
-| `forge build` | Compile all contracts |
-| `forge test` | Run full test suite |
-| `forge test -vvv` | Run tests with verbose output |
-| `forge test --match-path "test/core/Pool.t.sol"` | Run tests in a specific file |
-| `forge test --match-test "test_SwapExactInput"` | Run a single test by name |
-| `forge test --match-contract PoolFuzz` | Run all tests in a contract |
-| `forge test --gas-report` | Run tests with gas usage report |
-| `forge fmt` | Format Solidity code |
-| `forge fmt --check` | Check formatting without changes |
-| `forge snapshot` | Generate gas snapshots |
-| `anvil` | Start local EVM node (chainId 31337) |
-| `slither .` | Run static analysis |
+| Command                                          | Description                          |
+| ------------------------------------------------ | ------------------------------------ |
+| `forge build`                                    | Compile all contracts                |
+| `forge test`                                     | Run full test suite                  |
+| `forge test -vvv`                                | Run tests with verbose output        |
+| `forge test --match-path "test/core/Pool.t.sol"` | Run tests in a specific file         |
+| `forge test --match-test "test_SwapExactInput"`  | Run a single test by name            |
+| `forge test --match-contract PoolFuzz`           | Run all tests in a contract          |
+| `forge test --gas-report`                        | Run tests with gas usage report      |
+| `forge fmt`                                      | Format Solidity code                 |
+| `forge fmt --check`                              | Check formatting without changes     |
+| `forge snapshot`                                 | Generate gas snapshots               |
+| `anvil`                                          | Start local EVM node (chainId 31337) |
+| `slither .`                                      | Run static analysis                  |
 
 ### Frontend (run from `frontend/`)
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server at http://localhost:3000 |
-| `npm run build` | Production build (validates TypeScript) |
-| `npm run lint` | Run ESLint |
+| Command         | Description                               |
+| --------------- | ----------------------------------------- |
+| `npm run dev`   | Start dev server at http://localhost:3000 |
+| `npm run build` | Production build (validates TypeScript)   |
+| `npm run lint`  | Run ESLint                                |
 
 ## Environment Variables
 
 ### Frontend (`frontend/.env.local`)
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable                               | Description                                                              | Default          |
+| -------------------------------------- | ------------------------------------------------------------------------ | ---------------- |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect project ID (any non-empty string works for local MetaMask) | `dev-project-id` |
-| `NEXT_PUBLIC_POOL_ADDRESS` | Deployed Pool contract address | `0x0...0` |
-| `NEXT_PUBLIC_WETH_ADDRESS` | Deployed WETH contract address | `0x0...0` |
-| `NEXT_PUBLIC_USDC_ADDRESS` | Deployed MockUSDC contract address | `0x0...0` |
-| `NEXT_PUBLIC_FACTORY_ADDRESS` | Deployed Factory contract address | `0x0...0` |
+| `NEXT_PUBLIC_POOL_ADDRESS`             | Deployed Pool contract address                                           | `0x0...0`        |
+| `NEXT_PUBLIC_WETH_ADDRESS`             | Deployed WETH contract address                                           | `0x0...0`        |
+| `NEXT_PUBLIC_USDC_ADDRESS`             | Deployed MockUSDC contract address                                       | `0x0...0`        |
+| `NEXT_PUBLIC_FACTORY_ADDRESS`          | Deployed Factory contract address                                        | `0x0...0`        |

@@ -119,16 +119,12 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
   // Calculate swap output: dy = (dx * 997 * y) / (x * 1000 + dx * 997)
   let amountOutBigInt = 0n
   let priceImpact = 0
-  let minimumOutputBigInt = 0n
 
   if (amountInBigInt > 0n && reserveIn > 0n && reserveOut > 0n) {
     const amountInWithFee = amountInBigInt * 997n
     const numerator = amountInWithFee * reserveOut
     const denominator = reserveIn * 1000n + amountInWithFee
     amountOutBigInt = numerator / denominator
-
-    // Slippage tolerance: 0.5% default for safety
-    minimumOutputBigInt = (amountOutBigInt * 995n) / 1000n
 
     // Price impact: comparison of spot price vs execution price
     const spotPrice = Number(reserveOut) / 10**outputDecimals / (Number(reserveIn) / 10**inputDecimals)
@@ -187,12 +183,12 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
       // Step 2: Call swap on the pool contract
       // Determine token0/token1 output amounts
       const amount0Out = wethIsToken0
-        ? (inputToken === 'WETH' ? 0n : minimumOutputBigInt) // If inputting USDC (token1), we get token0 (WETH)
-        : (inputToken === 'WETH' ? minimumOutputBigInt : 0n)
+        ? (inputToken === 'WETH' ? 0n : amountOutBigInt) // If inputting USDC (token1), we get token0 (WETH)
+        : (inputToken === 'WETH' ? amountOutBigInt : 0n)
 
       const amount1Out = wethIsToken0
-        ? (inputToken === 'WETH' ? minimumOutputBigInt : 0n) // If inputting WETH (token0), we get token1 (USDC)
-        : (inputToken === 'WETH' ? 0n : minimumOutputBigInt)
+        ? (inputToken === 'WETH' ? amountOutBigInt : 0n) // If inputting WETH (token0), we get token1 (USDC)
+        : (inputToken === 'WETH' ? 0n : amountOutBigInt)
 
       setTxPhase('swap-pending')
       setTxHash(undefined) // Reset status component for the swap step
@@ -355,23 +351,12 @@ export function SwapPanel({ onSwapSuccess }: SwapPanelProps) {
                   {priceImpact.toFixed(4)}%
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Slippage Tolerance:</span>
-                <span>0.5%</span>
-              </div>
               {/* Liquidity Provider Fee */}
               <div className="flex justify-between">
                 <span className="text-gray-500">LP Fee (0.3%):</span>
                 <span className="text-amber-700 font-medium">
                   {parseFloat(formatUnits(feeAmount, inputDecimals)).toFixed(inputToken === 'WETH' ? 8 : 6)}{' '}
                   {inputToken}
-                </span>
-              </div>
-              <div className="flex justify-between border-t border-gray-200 pt-2 font-medium">
-                <span className="text-gray-600">Minimum Received:</span>
-                <span>
-                  {parseFloat(formatUnits(minimumOutputBigInt, outputDecimals)).toFixed(outputToken === 'WETH' ? 8 : 6)}{' '}
-                  {outputToken}
                 </span>
               </div>
             </div>

@@ -171,13 +171,6 @@ export function EducationalMath() {
               </div>
             </div>
 
-            {/* Step 3: Gas Secret */}
-            <div className="border-t border-gray-200 pt-2.5 font-sans">
-              <p className="font-semibold text-gray-700">3. Gas Secret: Transfer-then-Call</p>
-              <p className="text-[11px] text-gray-500 leading-normal mt-0.5 font-sans">
-                Notice that the UI didn{"'"}t prompt you for a standard ERC20 {"\""}Approve{"\""} transaction! By sending your tokens directly using <code className="font-mono bg-gray-100 px-1 py-0.5 rounded text-indigo-700">transfer</code>, the Pool contract automatically evaluates balance differences before running swap calculations. This saves ~45,000 gas per trade compared to Router contracts!
-              </p>
-            </div>
           </div>
         </div>
       )}

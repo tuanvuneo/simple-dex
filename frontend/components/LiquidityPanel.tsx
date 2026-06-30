@@ -611,6 +611,40 @@ export function LiquidityPanel({ onSuccess }: LiquidityPanelProps) {
                 <span className="text-gray-600">Estimated LP Tokens:</span>
                 <span>{formatUnits(lpEstimatedBigInt, 18)} SLP</span>
               </div>
+              {/* Pool Share % */}
+              {(() => {
+                const currentShare =
+                  lpUserBal !== undefined && totalSupply && totalSupply > 0n
+                    ? (Number(lpUserBal) / Number(totalSupply)) * 100
+                    : 0;
+                const newTotalSupply = (totalSupply ?? 0n) + lpEstimatedBigInt;
+                const newUserBal = (lpUserBal ?? 0n) + lpEstimatedBigInt;
+                const newShare =
+                  newTotalSupply > 0n
+                    ? (Number(newUserBal) / Number(newTotalSupply)) * 100
+                    : 0;
+                return (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Pool Share:</span>
+                    <span className="flex items-center gap-1.5">
+                      {currentShare > 0 && (
+                        <>
+                          <span className="text-gray-400">
+                            {currentShare < 0.01
+                              ? "<0.01"
+                              : currentShare.toFixed(2)}
+                            %
+                          </span>
+                          <span className="text-gray-300">→</span>
+                        </>
+                      )}
+                      <span className="font-semibold text-green-600">
+                        {newShare < 0.01 ? "<0.01" : newShare.toFixed(2)}%
+                      </span>
+                    </span>
+                  </div>
+                );
+              })()}
               {hasNoLiquidity && (
                 <p className="text-2xs text-blue-600 font-medium leading-normal pt-1">
                   {isPoolDepleted
@@ -669,6 +703,24 @@ export function LiquidityPanel({ onSuccess }: LiquidityPanelProps) {
       ) : (
         // Remove Liquidity Tab
         <div className="space-y-4">
+          {/* Current Pool Share */}
+          {lpUserBal !== undefined &&
+            totalSupply !== undefined &&
+            totalSupply > 0n &&
+            lpUserBal > 0n && (
+              <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 flex justify-between items-center text-xs">
+                <span className="text-indigo-700 font-medium">Your Pool Share</span>
+                <span className="text-indigo-900 font-semibold">
+                  {(() => {
+                    const share =
+                      (Number(lpUserBal) / Number(totalSupply)) * 100;
+                    return share < 0.01 ? "<0.01" : share.toFixed(2);
+                  })()}
+                  %
+                </span>
+              </div>
+            )}
+
           <div>
             <div className="flex justify-between text-xs text-gray-500 mb-1">
               <span>Burn LP Tokens</span>
@@ -711,7 +763,7 @@ export function LiquidityPanel({ onSuccess }: LiquidityPanelProps) {
           </div>
 
           {/* Returned assets preview */}
-          {lpAmountBigInt > 0n && (
+          {lpAmountBigInt > 0n && lpUserBal !== undefined && lpUserBal > 0n && lpAmountBigInt <= lpUserBal && (
             <div className="rounded-lg bg-gray-50 p-3 text-xs space-y-2 border border-gray-100">
               <div className="flex justify-between">
                 <span className="text-gray-500">Receive WETH:</span>
@@ -731,6 +783,47 @@ export function LiquidityPanel({ onSuccess }: LiquidityPanelProps) {
                   USDC
                 </span>
               </div>
+              {/* Pool Share after removal */}
+              {totalSupply && totalSupply > 0n && lpUserBal !== undefined && (
+                <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-1">
+                  <span className="text-gray-500">Pool Share After:</span>
+                  <span className="flex items-center gap-1.5">
+                    {(() => {
+                      const currentShare =
+                        (Number(lpUserBal) / Number(totalSupply)) * 100;
+                      const remainingLp = lpUserBal - lpAmountBigInt;
+                      const newShare =
+                        remainingLp > 0n && totalSupply > 0n
+                          ? (Number(remainingLp) / Number(totalSupply)) * 100
+                          : 0;
+                      return (
+                        <>
+                          <span className="text-gray-400">
+                            {currentShare < 0.01
+                              ? "<0.01"
+                              : currentShare.toFixed(2)}
+                            %
+                          </span>
+                          <span className="text-gray-300">→</span>
+                          <span
+                            className={`font-semibold ${
+                              newShare === 0
+                                ? "text-red-500"
+                                : "text-orange-600"
+                            }`}
+                          >
+                            {newShare === 0
+                              ? "0%"
+                              : newShare < 0.01
+                                ? "<0.01%"
+                                : `${newShare.toFixed(2)}%`}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

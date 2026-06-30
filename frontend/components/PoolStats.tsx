@@ -1,8 +1,9 @@
 'use client'
 
-import { useReadContracts } from 'wagmi'
+import { useAccount, useReadContracts } from 'wagmi'
 import { formatUnits } from 'viem'
 import { poolAbi } from '@/abi/Pool'
+import { erc20Abi } from '@/abi/ERC20'
 import {
   POOL_ADDRESS,
   WETH_ADDRESS,
@@ -13,6 +14,7 @@ import {
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 export function PoolStats() {
+  const { address, isConnected } = useAccount()
   const poolEnabled = POOL_ADDRESS !== ZERO_ADDRESS
 
   const { data, isPending, isError, error } = useReadContracts({
@@ -37,6 +39,12 @@ export function PoolStats() {
         abi: poolAbi,
         functionName: 'totalSupply',
       },
+      {
+        address: POOL_ADDRESS,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address ?? ZERO_ADDRESS],
+      },
     ],
     query: { enabled: poolEnabled },
   })
@@ -46,6 +54,7 @@ export function PoolStats() {
     | undefined
   const token0Result = data?.[1]?.result as `0x${string}` | undefined
   const totalSupplyResult = data?.[3]?.result as bigint | undefined
+  const userLpBalance = data?.[4]?.result as bigint | undefined
 
   // Determine which reserve corresponds to which token
   const wethIsToken0 =
@@ -163,6 +172,33 @@ export function PoolStats() {
                 : '—'}
             </dd>
           </div>
+
+          {/* User Pool Share */}
+          {isConnected &&
+            userLpBalance !== undefined &&
+            totalSupplyResult !== undefined &&
+            totalSupplyResult > 0n && (
+              <div className="flex items-center justify-between">
+                <dt className="text-sm font-medium text-gray-600">
+                  Your Pool Share
+                </dt>
+                <dd className="text-sm">
+                  {userLpBalance === 0n ? (
+                    <span className="text-gray-400">0%</span>
+                  ) : (
+                    <span className="text-indigo-600 font-semibold">
+                      {(() => {
+                        const share =
+                          (Number(userLpBalance) / Number(totalSupplyResult)) *
+                          100
+                        return share < 0.01 ? '<0.01' : share.toFixed(2)
+                      })()}
+                      %
+                    </span>
+                  )}
+                </dd>
+              </div>
+            )}
         </dl>
       )}
     </section>
